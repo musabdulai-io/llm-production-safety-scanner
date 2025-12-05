@@ -24,8 +24,8 @@ def generate_html_report(result: ScanResult, output_path: str = "report.html") -
     """
     logs.info(f"Generating HTML report", "reporting", {"output": output_path})
 
-    # Get template directory
-    template_dir = Path(__file__).parent.parent.parent.parent / "templates"
+    # Get template directory (backend/templates/)
+    template_dir = Path(__file__).parent.parent.parent.parent.parent / "templates"
 
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template("report.html")
