@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Security Scan Report</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-green: #00ff88;
+            --accent-red: #ff4444;
+            --accent-orange: #ff8c00;
+            --accent-yellow: #ffcc00;
+            --accent-blue: #4488ff;
+            --border-color: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .status-banner.failed {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.15), rgba(255, 68, 68, 0.05));
+            border: 1px solid var(--accent-red);
+        }
+
+        .status-banner.passed {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 136, 0.05));
+            border: 1px solid var(--accent-green);
+        }
+
+        .status-banner h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-banner.failed h2 {
+            color: var(--accent-red);
+        }
+
+        .status-banner.passed h2 {
+            color: var(--accent-green);
+        }
+
+        .status-banner .count {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .status-banner.failed .count {
+            color: var(--accent-red);
+        }
+
+        .status-banner.passed .count {
+            color: var(--accent-green);
+        }
+
+        /* Severity Badges */
+        .severity-badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge.critical {
+            background-color: rgba(255, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+
+        .badge.high {
+            background-color: rgba(255, 140, 0, 0.2);
+            color: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
+
+        .badge.medium {
+            background-color: rgba(255, 204, 0, 0.2);
+            color: var(--accent-yellow);
+            border: 1px solid var(--accent-yellow);
+        }
+
+        .badge.low {
+            background-color: rgba(68, 136, 255, 0.2);
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+        }
+
+        /* Metadata Grid */
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metadata-card {
+            background-color: var(--bg-secondary);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .metadata-card .label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .metadata-card .value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Attack Results Table */
+        .attack-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .attack-table th,
+        .attack-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .attack-table th {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+
+        .attack-table tr:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .status-pass {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .status-fail {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+
+        .status-error {
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
+        /* Vulnerability Cards */
+        .vulnerability-card {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .vulnerability-header {
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .vulnerability-header h3 {
+            font-size: 1.1rem;
+        }
+
+        .vulnerability-body {
+            padding: 1.25rem;
+        }
+
+        .vulnerability-body p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .vulnerability-body .label {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Evidence Section */
+        .evidence {
+            background-color: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .evidence-item {
+            margin-bottom: 1rem;
+        }
+
+        .evidence-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .evidence-item .label {
+            color: var(--accent-green);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .evidence-item pre {
+            background-color: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Remediation */
+        .remediation {
+            background-color: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .remediation .label {
+            color: var(--accent-green);
+        }
+
+        .remediation p {
+            color: var(--text-secondary);
+        }
+
+        /* Chat Replay Section */
+        .chat-replay {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .chat-replay h3 {
+            margin-bottom: 1rem;
+        }
+
+        .chat-message {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            max-width: 80%;
+        }
+
+        .chat-message.user {
+            background-color: var(--accent-blue);
+            margin-left: auto;
+        }
+
+        .chat-message.assistant {
+            background-color: var(--bg-tertiary);
+        }
+
+        .chat-message .role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .status-banner .count {
+                font-size: 2rem;
+            }
+
+            .vulnerability-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            .status-banner.failed {
+                background: #ffeeee;
+                border-color: #ff0000;
+            }
+
+            .status-banner.passed {
+                background: #eeffee;
+                border-color: #00aa00;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>AI Security Scan Report</h1>
+            <p class="subtitle">Automated vulnerability assessment for LLM/RAG applications</p>
+        </header>
+
+        <!-- Status Banner -->
+        <div class="status-banner {{ 'failed' if has_vulnerabilities else 'passed' }}">
+            <h2>{{ 'VULNERABILITIES DETECTED' if has_vulnerabilities else 'SCAN PASSED' }}</h2>
+            <div class="count">{{ total_vulnerabilities }}</div>
+            <p>{{ 'vulnerability found' if total_vulnerabilities == 1 else 'vulnerabilities found' }}</p>
+
+            {% if has_vulnerabilities %}
+            <div class="severity-badges">
+                {% if severity_counts.CRITICAL > 0 %}
+                <span class="badge critical">CRITICAL: {{ severity_counts.CRITICAL }}</span>
+                {% endif %}
+                {% if severity_counts.HIGH > 0 %}
+                <span class="badge high">HIGH: {{ severity_counts.HIGH }}</span>
+                {% endif %}
+                {% if severity_counts.MEDIUM > 0 %}
+                <span class="badge medium">MEDIUM: {{ severity_counts.MEDIUM }}</span>
+                {% endif %}
+                {% if severity_counts.LOW > 0 %}
+                <span class="badge low">LOW: {{ severity_counts.LOW }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Metadata -->
+        <div class="metadata-grid">
+            <div class="metadata-card">
+                <div class="label">Target URL</div>
+                <div class="value">{{ result.target_url }}</div>
+            </div>
+            <div class="metadata-card">
+                <div class="label">Scan ID</div>
+                <div class="value">{{ result.scan_id[:8] }}...</div>
+            </div>
+            <div class="metadata-card">
+                <div class="label">Timestamp</div>
+                <div class="value">{{ result.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</div>
+            </div>
+            <div class="metadata-card">
+                <div class="label">Duration</div>
+                <div class="value">{{ '%.2f'|format(result.duration_seconds) }}s</div>
+            </div>
+        </div>
+
+        <!-- Attack Results -->
+        <section class="section">
+            <h2 class="section-title">Attack Results</h2>
+            <table class="attack-table">
+                <thead>
+                    <tr>
+                        <th>Attack Type</th>
+                        <th>Status</th>
+                        <th>Vulnerabilities</th>
+                        <th>Latency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attack in result.attack_results %}
+                    <tr>
+                        <td>{{ attack.attack_type }}</td>
+                        <td>
+                            {% if attack.status == 'PASS' %}
+                            <span class="status-pass">PASS</span>
+                            {% elif attack.status == 'FAIL' %}
+                            <span class="status-fail">FAIL</span>
+                            {% else %}
+                            <span class="status-error">ERROR</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ attack.vulnerabilities|length }}</td>
+                        <td>{{ attack.latency_ms }}ms</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Vulnerabilities -->
+        {% if has_vulnerabilities %}
+        <section class="section">
+            <h2 class="section-title">Vulnerability Details</h2>
+
+            {% for vuln in result.vulnerabilities %}
+            <div class="vulnerability-card">
+                <div class="vulnerability-header">
+                    <h3>{{ vuln.name }}</h3>
+                    <span class="badge {{ vuln.severity.value|lower }}">{{ vuln.severity.value }}</span>
+                </div>
+                <div class="vulnerability-body">
+                    <p>{{ vuln.description }}</p>
+
+                    <div class="evidence">
+                        <div class="evidence-item">
+                            <div class="label">Request / Payload</div>
+                            <pre>{{ vuln.evidence_request }}</pre>
+                        </div>
+                        <div class="evidence-item">
+                            <div class="label">Response / Evidence</div>
+                            <pre>{{ vuln.evidence_response }}</pre>
+                        </div>
+                    </div>
+
+                    <div class="remediation">
+                        <div class="label">Remediation</div>
+                        <p>{{ vuln.remediation }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Generated by <a href="https://github.com/musabdulai-io/ai-security-scanner">AI Security Scanner</a></p>
+            <p>Report generated on {{ result.timestamp.strftime('%B %d, %Y at %H:%M UTC') }}</p>
+        </footer>
+    </div>
+</body>
+</html>
