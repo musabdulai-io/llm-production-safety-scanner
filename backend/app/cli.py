@@ -87,6 +87,11 @@ def scan(
         "-v",
         help="Include raw AI responses in the report for analysis",
     ),
+    pdf: bool = typer.Option(
+        False,
+        "--pdf",
+        help="Generate PDF report in addition to HTML",
+    ),
     no_open: bool = typer.Option(
         False,
         "--no-open",
@@ -179,9 +184,16 @@ def scan(
         show_summary(result)
 
         # Generate report
-        report_path = generate_html_report(result, output)
+        report_path = generate_html_report(result, output, verbose=verbose)
         console.print()
         console.print(f"[dim]Report saved to: {report_path}[/dim]")
+
+        # Generate PDF if requested
+        if pdf:
+            from backend.app.features.scanner.reporting.pdf import generate_pdf_report
+            pdf_output = output.replace(".html", ".pdf") if output.endswith(".html") else f"{output}.pdf"
+            pdf_path = generate_pdf_report(result, pdf_output, verbose=verbose)
+            console.print(f"[dim]PDF saved to: {pdf_path}[/dim]")
 
         # Open report in browser
         if not no_open:

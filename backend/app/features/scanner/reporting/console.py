@@ -13,6 +13,10 @@ from ..models import AttackResult, ScanResult
 # Global console instance
 console = Console()
 
+# Sorting orders
+STATUS_ORDER = {"FAIL": 0, "ERROR": 1, "PASS": 2}
+SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+
 
 def show_progress(message: str) -> None:
     """Show a progress message in the terminal."""
@@ -84,6 +88,11 @@ def show_attack_table(results: List[AttackResult]) -> None:
             cost_attacks.append(result)
         else:
             security_attacks.append(result)
+
+    # Sort attacks: FAIL first, then ERROR, then PASS
+    security_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
+    reliability_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
+    cost_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
 
     console.print()
 
@@ -239,6 +248,11 @@ def show_vulnerabilities_detail(result: ScanResult) -> None:
             cost_vulns.append(vuln)
         else:
             security_vulns.append(vuln)
+
+    # Sort vulnerabilities by severity: CRITICAL first
+    security_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+    reliability_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+    cost_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
 
     severity_colors = {
         "CRITICAL": "red",

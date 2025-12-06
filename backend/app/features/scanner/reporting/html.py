@@ -11,14 +11,37 @@ from backend.app.core import logs
 from backend.app.core.config import settings
 from ..models import ScanResult, Severity, AttackResult
 
+# Sorting orders
+STATUS_ORDER = {"FAIL": 0, "ERROR": 1, "PASS": 2}
+SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
-def generate_html_report(result: ScanResult, output_path: str = "report.html") -> str:
+
+def calculate_score(severity_counts: Dict[str, int]) -> int:
+    """Calculate security score (0-100) based on vulnerability severities.
+
+    Formula: 100 - (critical*25 + high*15 + medium*5 + low*2)
+    """
+    deductions = (
+        severity_counts.get("CRITICAL", 0) * 25 +
+        severity_counts.get("HIGH", 0) * 15 +
+        severity_counts.get("MEDIUM", 0) * 5 +
+        severity_counts.get("LOW", 0) * 2
+    )
+    return max(0, 100 - deductions)
+
+
+def generate_html_report(
+    result: ScanResult,
+    output_path: str = "report.html",
+    verbose: bool = False,
+) -> str:
     """
     Generate HTML report from scan result.
 
     Args:
         result: ScanResult object containing scan findings
         output_path: Path to save the HTML report
+        verbose: Include raw request/response logs in report
 
     Returns:
         Absolute path to the generated report file
@@ -41,6 +64,9 @@ def generate_html_report(result: ScanResult, output_path: str = "report.html") -
     for vuln in result.vulnerabilities:
         severity_counts[vuln.severity.value] += 1
 
+    # Calculate security score
+    score = calculate_score(severity_counts)
+
     # Group attack results by category
     security_attacks: List[AttackResult] = []
     reliability_attacks: List[AttackResult] = []
@@ -61,6 +87,14 @@ def generate_html_report(result: ScanResult, output_path: str = "report.html") -
             cost_attacks.append(attack)
         else:
             security_attacks.append(attack)
+
+    # Sort attacks: FAIL first, then ERROR, then PASS
+    security_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
+    reliability_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
+    cost_attacks.sort(key=lambda x: STATUS_ORDER.get(x.status, 3))
+
+    # Count passed attacks
+    passed_count = sum(1 for attack in result.attack_results if attack.status == "PASS")
 
     # Group vulnerabilities by attack category
     security_vulns = []
@@ -93,15 +127,38 @@ def generate_html_report(result: ScanResult, output_path: str = "report.html") -
         else:
             security_vulns.append(vuln)
 
+    # Sort vulnerabilities by severity: CRITICAL first
+    security_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+    reliability_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+    cost_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+
     # Render template
     html = template.render(
+        # Metadata
+        target_url=result.target_url,
+        scan_id=result.scan_id,
+        timestamp=result.timestamp,
+        duration=result.duration_seconds,
+
+        # Scorecard
+        score=score,
+        critical_count=severity_counts["CRITICAL"],
+        high_count=severity_counts["HIGH"],
+        medium_count=severity_counts["MEDIUM"],
+        low_count=severity_counts["LOW"],
+        passed_count=passed_count,
+
+        # Backward compatibility
         result=result,
         has_vulnerabilities=len(result.vulnerabilities) > 0,
         severity_counts=severity_counts,
         total_vulnerabilities=len(result.vulnerabilities),
+
+        # CTA
         cta_url=settings.CTA_URL,
         cta_text=settings.CTA_TEXT,
-        # Categorized data
+
+        # Categorized & sorted data
         security_attacks=security_attacks,
         reliability_attacks=reliability_attacks,
         cost_attacks=cost_attacks,
@@ -111,6 +168,10 @@ def generate_html_report(result: ScanResult, output_path: str = "report.html") -
         security_vuln_count=len(security_vulns),
         reliability_vuln_count=len(reliability_vulns),
         cost_vuln_count=len(cost_vulns),
+
+        # Verbose mode
+        include_raw_log=verbose,
+        raw_log=result.raw_log if verbose else [],
     )
 
     # Write to file
