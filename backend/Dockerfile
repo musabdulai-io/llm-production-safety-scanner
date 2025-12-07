@@ -24,12 +24,11 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    # WeasyPrint dependencies for PDF generation
+    # WeasyPrint dependencies for PDF generation (per official docs)
     libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz-subset0 \
     libffi-dev \
-    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
