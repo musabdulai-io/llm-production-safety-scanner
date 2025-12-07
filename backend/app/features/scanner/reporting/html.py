@@ -132,6 +132,10 @@ def generate_html_report(
     reliability_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
     cost_vulns.sort(key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
 
+    # All vulnerabilities sorted by severity for Critical Findings section
+    all_vulns = sorted(result.vulnerabilities, key=lambda x: SEVERITY_ORDER.get(x.severity.value, 4))
+    total_vulns = len(result.vulnerabilities)
+
     # Render template
     html = template.render(
         # Metadata
@@ -140,8 +144,9 @@ def generate_html_report(
         timestamp=result.timestamp,
         duration=result.duration_seconds,
 
-        # Scorecard
-        score=score,
+        # Scorecard (score removed - now just vuln counts)
+        total_vulns=total_vulns,
+        all_vulns=all_vulns,
         critical_count=severity_counts["CRITICAL"],
         high_count=severity_counts["HIGH"],
         medium_count=severity_counts["MEDIUM"],
@@ -150,9 +155,9 @@ def generate_html_report(
 
         # Backward compatibility
         result=result,
-        has_vulnerabilities=len(result.vulnerabilities) > 0,
+        has_vulnerabilities=total_vulns > 0,
         severity_counts=severity_counts,
-        total_vulnerabilities=len(result.vulnerabilities),
+        total_vulnerabilities=total_vulns,
 
         # CTA
         cta_url=settings.CTA_URL,

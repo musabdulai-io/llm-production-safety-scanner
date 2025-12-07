@@ -6,6 +6,7 @@ from .console import (
     console,
     show_progress,
     show_attack_table,
+    show_failures_summary,
     show_summary,
     show_error,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "console",
     "show_progress",
     "show_attack_table",
+    "show_failures_summary",
     "show_summary",
     "show_error",
 ]

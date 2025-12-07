@@ -16,6 +16,7 @@ from backend.app.features.scanner.reporting import (
     open_report,
     show_attack_table,
     show_error,
+    show_failures_summary,
     show_progress,
     show_summary,
 )
@@ -178,8 +179,8 @@ def scan(
             target, fast, headers, competitors, llm_judge, judge_provider
         ))
 
-        # Display results
-        console.print()
+        # Display results - failures first, then category tables
+        show_failures_summary(result)
         show_attack_table(result.attack_results)
         show_summary(result)
 

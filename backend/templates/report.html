@@ -24,9 +24,9 @@
         }
 
         /* Status table styling */
-        .status-pass { color: #10b981; }
-        .status-fail { color: #ef4444; font-weight: 600; }
-        .status-error { color: #f59e0b; }
+        .status-pass { color: #6b7280; font-weight: 400; }  /* De-emphasized */
+        .status-fail { color: #ef4444; font-weight: 700; }  /* Bold emphasis */
+        .status-error { color: #f59e0b; font-weight: 600; }
 
         /* Severity badges */
         .severity-critical { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.5); }
@@ -54,14 +54,14 @@
 
     <!-- High Level Scorecard -->
     <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <!-- Overall Grade -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
-            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2">Security Score</h3>
-            <div class="text-6xl font-bold {{ 'text-red-500' if score < 70 else 'text-emerald-500' }}">
-                {{ score }}<span class="text-2xl text-slate-500">/100</span>
+        <!-- Vulnerability Count -->
+        <div class="bg-slate-800 p-6 rounded-xl border {{ 'border-red-500' if total_vulns > 0 else 'border-emerald-500' }} flex flex-col items-center justify-center">
+            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2">Vulnerabilities</h3>
+            <div class="text-6xl font-bold {{ 'text-red-500' if total_vulns > 0 else 'text-emerald-500' }}">
+                {{ total_vulns }}
             </div>
-            <p class="mt-2 text-sm {{ 'text-red-400' if score < 70 else 'text-emerald-400' }}">
-                {% if score < 50 %}CRITICAL RISK{% elif score < 70 %}HIGH RISK{% elif score < 90 %}MODERATE RISK{% else %}LOW RISK{% endif %}
+            <p class="mt-2 text-sm {{ 'text-red-400' if total_vulns > 0 else 'text-emerald-400' }}">
+                {% if critical_count > 0 %}CRITICAL RISK{% elif high_count > 0 %}HIGH RISK{% elif medium_count > 0 %}MODERATE RISK{% elif low_count > 0 %}LOW RISK{% else %}SECURE{% endif %}
             </p>
         </div>
 
@@ -117,6 +117,35 @@
             </a>
         </div>
     </section>
+
+    <!-- Critical Findings Summary (if vulnerabilities exist) -->
+    {% if total_vulns > 0 %}
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold text-white mb-6 border-l-4 border-red-500 pl-4">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Critical Findings
+        </h2>
+        <div class="bg-red-900/20 border border-red-500/50 rounded-xl p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for vuln in all_vulns[:6] %}
+                <div class="flex items-start gap-3 p-3 bg-slate-800/50 rounded-lg">
+                    <span class="text-xs font-bold px-2 py-1 rounded border severity-{{ vuln.severity.value|lower }} flex-shrink-0">
+                        {{ vuln.severity.value }}
+                    </span>
+                    <div>
+                        <p class="font-semibold text-white">{{ vuln.name }}</p>
+                        <p class="text-sm text-slate-400 mt-1">{{ vuln.description[:100] }}{% if vuln.description|length > 100 %}...{% endif %}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if all_vulns|length > 6 %}
+            <p class="text-center text-slate-400 mt-4 text-sm">
+                + {{ all_vulns|length - 6 }} more vulnerabilities below
+            </p>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
 
     <!-- Attack Results Tables -->
     <section class="mb-12">

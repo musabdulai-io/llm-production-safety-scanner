@@ -20,11 +20,11 @@ SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
 def show_progress(message: str) -> None:
     """Show a progress message in the terminal."""
-    # Color code based on message type
+    # Color code based on message type - emphasize failures
     if "[FAIL]" in message or "[ERROR]" in message or "[WARN]" in message:
-        console.print(f"[red]{message}[/red]")
+        console.print(f"[bold red]{message}[/bold red]")
     elif "[PASS]" in message:
-        console.print(f"[green]{message}[/green]")
+        console.print(f"[dim green]{message}[/dim green]")  # De-emphasized
     elif "[SKIP]" in message:
         console.print(f"[yellow]{message}[/yellow]")
     else:
@@ -33,7 +33,12 @@ def show_progress(message: str) -> None:
 
 def _create_attack_table(title: str, results: List[AttackResult]) -> Table:
     """Create a table for a category of attacks."""
-    table = Table(title=title, show_header=True, header_style="bold cyan")
+    # Count failures for title
+    fail_count = sum(1 for r in results if r.status == "FAIL")
+    title_style = "bold red" if fail_count > 0 else "bold cyan"
+    title_suffix = f" ({fail_count} issues)" if fail_count > 0 else ""
+
+    table = Table(title=f"{title}{title_suffix}", show_header=True, header_style="bold cyan", title_style=title_style)
 
     table.add_column("Attack Type", style="cyan", width=25)
     table.add_column("Status", justify="center", width=10)
@@ -41,23 +46,26 @@ def _create_attack_table(title: str, results: List[AttackResult]) -> Table:
     table.add_column("Latency", justify="right", width=10)
 
     for result in results:
-        # Determine status style
+        # Determine status style - emphasize failures, de-emphasize passes
         if result.status == "PASS":
-            status_display = "[green]PASS[/green]"
+            status_display = "[dim green]PASS[/dim green]"
+            attack_style = "dim"
         elif result.status == "FAIL":
-            status_display = "[red]FAIL[/red]"
+            status_display = "[bold red]FAIL[/bold red]"
+            attack_style = "bold white"
         else:
             status_display = "[yellow]ERROR[/yellow]"
+            attack_style = "yellow"
 
         # Vulnerability count with color
         vuln_count = len(result.vulnerabilities)
         if vuln_count > 0:
-            vuln_display = f"[red]{vuln_count}[/red]"
+            vuln_display = f"[bold red]{vuln_count}[/bold red]"
         else:
-            vuln_display = "[green]0[/green]"
+            vuln_display = "[dim]0[/dim]"
 
         table.add_row(
-            result.attack_type,
+            f"[{attack_style}]{result.attack_type}[/{attack_style}]",
             status_display,
             vuln_display,
             f"{result.latency_ms}ms",
@@ -112,6 +120,53 @@ def show_attack_table(results: List[AttackResult]) -> None:
     if cost_attacks:
         table = _create_attack_table("Cost & Performance", cost_attacks)
         console.print(table)
+
+
+def show_failures_summary(result: ScanResult) -> None:
+    """Show prominent failures summary at the top before category tables."""
+    if not result.vulnerabilities:
+        return
+
+    vuln_count = len(result.vulnerabilities)
+
+    # Count by severity
+    severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+    severity_vulns: dict = {"CRITICAL": [], "HIGH": [], "MEDIUM": [], "LOW": []}
+
+    for vuln in result.vulnerabilities:
+        sev = vuln.severity.value
+        severity_counts[sev] += 1
+        severity_vulns[sev].append(vuln.name)
+
+    # Build content for panel
+    lines = [f"[bold red]{vuln_count} VULNERABILITIES FOUND[/bold red]\n"]
+
+    severity_colors = {
+        "CRITICAL": "red",
+        "HIGH": "orange1",
+        "MEDIUM": "yellow",
+        "LOW": "blue",
+    }
+
+    for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
+        if severity_counts[sev] > 0:
+            color = severity_colors[sev]
+            lines.append(f"[{color}]{sev} ({severity_counts[sev]})[/{color}]")
+            for name in severity_vulns[sev]:
+                lines.append(f"  [{color}]• {name}[/{color}]")
+            lines.append("")
+
+    content = "\n".join(lines)
+
+    panel = Panel(
+        content,
+        border_style="red",
+        title="[bold red]⚠️  VULNERABILITIES DETECTED[/bold red]",
+        title_align="left",
+    )
+
+    console.print()
+    console.print(panel)
 
 
 def show_summary(result: ScanResult) -> None:
