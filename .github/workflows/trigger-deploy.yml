@@ -1,0 +1,39 @@
+# Trigger Deploy Pipeline
+#
+# This workflow triggers the Cloud Build pipeline in the private deploy repo
+# when changes are pushed to main in this public app repo.
+#
+# Setup required:
+# 1. Create a GitHub Personal Access Token (PAT) with 'repo' scope for the private deploy repo
+# 2. Add it as a secret named 'DEPLOY_REPO_TOKEN' in this repo's Settings > Secrets > Actions
+#
+# The private deploy repo's Cloud Build trigger will:
+# 1. Detect the push to its main branch
+# 2. Clone this public repo to get the app code
+# 3. Build Docker images and deploy to Cloud Run staging
+
+name: Trigger Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy pipeline
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_REPO_TOKEN }}
+        run: |
+          # Clone private deploy repo
+          git clone https://x-access-token:${DEPLOY_TOKEN}@github.com/${{ github.repository_owner }}/ai-security-scanner-deploy.git deploy
+          cd deploy
+
+          # Update trigger file with app commit SHA
+          echo "${{ github.sha }}" > .app-commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .app-commit
+          git commit -m "Deploy app commit ${{ github.sha }}" || exit 0
+          git push
