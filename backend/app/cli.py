@@ -2,6 +2,7 @@
 """Typer CLI application for AI Security Scanner."""
 
 import asyncio
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -160,7 +161,20 @@ def scan(
         if competitors:
             console.print(f"[dim]Competitors: {', '.join(competitors)}[/dim]")
         if llm_judge:
-            console.print("[cyan]LLM Judge: Enabled (uses API credits)[/cyan]")
+            # Check for API key before proceeding
+            has_openai = os.environ.get("OPENAI_API_KEY")
+            has_anthropic = os.environ.get("ANTHROPIC_API_KEY")
+            if not has_openai and not has_anthropic:
+                show_error(
+                    "--llm-judge requires an API key. Set OPENAI_API_KEY or ANTHROPIC_API_KEY:\n\n"
+                    "  export OPENAI_API_KEY=sk-...\n"
+                    "  # or\n"
+                    "  export ANTHROPIC_API_KEY=sk-ant-...\n\n"
+                    "Or run without --llm-judge to use pattern-based detection."
+                )
+                raise typer.Exit(1)
+            provider_name = "OpenAI" if has_openai else "Anthropic"
+            console.print(f"[cyan]LLM Judge: Enabled via {provider_name} (uses API credits)[/cyan]")
         console.print()
 
         # Run the scan
