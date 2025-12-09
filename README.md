@@ -36,6 +36,9 @@ Run directly without installation:
 
 ```bash
 pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
+
+# With LLM Judge
+OPENAI_API_KEY=sk-... pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge
 ```
 
 Or install globally:
@@ -50,7 +53,14 @@ scanner scan https://your-app.com --output report.html
 > **Prerequisites:** Install Docker from [docker.com/get-docker](https://docs.docker.com/get-docker/)
 
 ```bash
-docker run --rm -it ghcr.io/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
+# Basic scan
+docker run --rm ghcr.io/musabdulai-io/ai-security-scanner scan https://your-app.com
+
+# With LLM Judge (pass API key)
+docker run --rm -e OPENAI_API_KEY=$OPENAI_API_KEY ghcr.io/musabdulai-io/ai-security-scanner scan https://your-app.com --llm-judge
+
+# Save report to host
+docker run --rm -v $(pwd)/reports:/reports ghcr.io/musabdulai-io/ai-security-scanner scan https://your-app.com -o /reports/report.html
 ```
 
 ### Option 3: uv / uvx (Fastest)
@@ -65,6 +75,9 @@ Run directly without installation (like pipx):
 
 ```bash
 uvx --from git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
+
+# With LLM Judge
+OPENAI_API_KEY=sk-... uvx --from git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge
 ```
 
 Or clone and run from source:
@@ -110,7 +123,8 @@ scanner scan https://your-app.com
 # Fast scan (skip RAG upload tests)
 scanner scan https://your-app.com --fast
 
-# With LLM Judge for better detection
+# With LLM Judge for better detection (requires API key)
+export OPENAI_API_KEY=sk-...  # or ANTHROPIC_API_KEY
 scanner scan https://your-app.com --llm-judge
 
 # Generate both HTML and PDF reports
@@ -131,6 +145,15 @@ scanner scan https://your-app.com --competitor "Acme Corp" --competitor "BigCo"
 # Don't auto-open report
 scanner scan https://your-app.com --no-open
 ```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API key for LLM Judge (uses gpt-4o-mini) |
+| `ANTHROPIC_API_KEY` | Anthropic API key for LLM Judge (uses claude-3-haiku) |
+
+Set one of these to enable `--llm-judge`. The scanner auto-detects which provider to use.
 
 ### Commands
 
