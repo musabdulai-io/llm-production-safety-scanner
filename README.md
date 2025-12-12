@@ -16,42 +16,20 @@ A security auditing tool for LLM and RAG applications. Test for prompt injection
 - **CLI & Web Interface** - Use from terminal or browser
 - **cURL Import** - Import target configuration from cURL commands
 
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **CLI** | Python, Typer, Rich |
+| **Backend** | FastAPI, Uvicorn, Pydantic |
+| **Frontend** | Next.js 14, React, TailwindCSS |
+| **LLM Integration** | OpenAI, Anthropic (LLM-as-Judge) |
+| **Reports** | WeasyPrint (PDF), Jinja2 (HTML) |
+| **Deployment** | Docker, GitHub Container Registry |
+
 ## Quick Start
 
-### Option 1: pipx (Recommended)
-
-> **Prerequisites:** Install pipx first:
-> ```bash
-> # Standard Python
-> python3 -m pip install --user pipx
-> python3 -m pipx ensurepath
->
-> # Or with uv
-> uv tool install pipx
-> uv tool update-shell
-> ```
-> Then restart your terminal.
-
-Run directly without installation:
-
-```bash
-pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
-
-# With LLM Judge (using --api-key flag)
-pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge --api-key sk-...
-
-# Or with environment variable
-OPENAI_API_KEY=sk-... pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge
-```
-
-Or install globally:
-
-```bash
-pipx install git+https://github.com/musabdulai-io/ai-security-scanner
-scanner scan https://your-app.com --output report.html
-```
-
-### Option 2: Docker
+### Option 1: Docker (Recommended)
 
 > **Prerequisites:** Install Docker from [docker.com/get-docker](https://docs.docker.com/get-docker/)
 
@@ -66,41 +44,29 @@ docker run --rm -e OPENAI_API_KEY=$OPENAI_API_KEY ghcr.io/musabdulai-io/ai-secur
 docker run --rm -v $(pwd)/reports:/reports ghcr.io/musabdulai-io/ai-security-scanner scan https://your-app.com -o /reports/report.html
 ```
 
-### Option 3: uv / uvx (Fastest)
+### Option 2: pipx
 
-> **Prerequisites:** Install uv:
-> ```bash
-> curl -LsSf https://astral.sh/uv/install.sh | sh
-> ```
-> Or: `pip install uv`
+> **Prerequisites:** `pip install pipx && pipx ensurepath` (then restart terminal)
 
-Run directly without installation (like pipx):
+```bash
+pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
+
+# With LLM Judge
+pipx run --spec git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge --api-key sk-...
+```
+
+### Option 3: uvx
+
+> **Prerequisites:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ```bash
 uvx --from git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com
 
-# With LLM Judge (using --api-key flag)
+# With LLM Judge
 uvx --from git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge --api-key sk-...
-
-# Or with environment variable
-OPENAI_API_KEY=sk-... uvx --from git+https://github.com/musabdulai-io/ai-security-scanner scanner scan https://your-app.com --llm-judge
 ```
 
-Or clone and run from source:
-
-```bash
-git clone https://github.com/musabdulai-io/ai-security-scanner.git
-cd ai-security-scanner
-uv sync
-uv run scanner scan https://your-app.com
-```
-
-### Option 4: Poetry
-
-> **Prerequisites:** Install Poetry:
-> ```bash
-> curl -sSL https://install.python-poetry.org | python3 -
-> ```
+### Option 4: From Source (Poetry)
 
 ```bash
 git clone https://github.com/musabdulai-io/ai-security-scanner.git
@@ -109,15 +75,14 @@ poetry install
 poetry run scanner scan https://your-app.com
 ```
 
-### Option 5: pip / venv
+### Option 5: From Source (pip)
 
 ```bash
 git clone https://github.com/musabdulai-io/ai-security-scanner.git
 cd ai-security-scanner
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-python -m backend.app.cli scan https://your-app.com
+scanner scan https://your-app.com
 ```
 
 ## CLI Usage
@@ -246,6 +211,49 @@ The scanner includes **24 attack modules** organized into three categories:
 |--------|-------------|
 | **Efficiency Analysis** | Measures latency and token usage |
 | **Resource Exhaustion** | Tests if AI can be tricked into excessive generation |
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AI Security Scanner                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   ┌───────────┐     ┌──────────────┐     ┌─────────────────┐   │
+│   │    CLI    │     │    Web UI    │     │   Docker CLI    │   │
+│   │  (Typer)  │     │  (Next.js)   │     │                 │   │
+│   └─────┬─────┘     └──────┬───────┘     └────────┬────────┘   │
+│         │                  │                      │             │
+│         └──────────────────┼──────────────────────┘             │
+│                            ▼                                     │
+│                  ┌──────────────────┐                           │
+│                  │  Scanner Service │                           │
+│                  │    (FastAPI)     │                           │
+│                  └────────┬─────────┘                           │
+│                           │                                      │
+│         ┌─────────────────┼─────────────────┐                   │
+│         ▼                 ▼                 ▼                   │
+│   ┌───────────┐    ┌───────────┐    ┌───────────┐             │
+│   │  Attack   │    │  Pattern  │    │    LLM    │             │
+│   │  Modules  │    │  Detector │    │   Judge   │             │
+│   │   (24)    │    │           │    │ (Optional)│             │
+│   └─────┬─────┘    └─────┬─────┘    └─────┬─────┘             │
+│         │                │                │                     │
+│         └────────────────┼────────────────┘                     │
+│                          ▼                                       │
+│                 ┌─────────────────┐                             │
+│                 │ Report Generator│                             │
+│                 │  (HTML / PDF)   │                             │
+│                 └─────────────────┘                             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │  Target LLM/RAG │
+                  │    Endpoint     │
+                  └─────────────────┘
+```
 
 ## Testing Locally
 
@@ -379,6 +387,9 @@ This tool is for authorized security testing only. Only scan applications you ow
 
 See [SECURITY.md](SECURITY.md) for responsible use guidelines.
 
----
+## Contact
 
-Built by [Musa Abdulai](https://musabdulai.com)
+- **Website**: [musabdulai.com](https://musabdulai.com)
+- **Demo**: [audit.musabdulai.com](https://audit.musabdulai.com)
+- **Book a Call**: [calendly.com/musabdulai](https://calendly.com/musabdulai/ai-security-check)
+- **Email**: hello@musabdulai.com
