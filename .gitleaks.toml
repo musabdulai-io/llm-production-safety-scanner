@@ -1,27 +1,19 @@
-# Gitleaks configuration for AI Security Scanner
-# Tight allowlist - only allow specific files
+# Gitleaks configuration for LLM Production Safety Scanner
 
-title = "AI Security Scanner Gitleaks Config"
+title = "LLM Production Safety Scanner Gitleaks Config"
 
-[allowlist]
-description = "Allowlist for specific files only"
-paths = [
-    '''\.env\.example$''',
-]
-
-# Extend default rules
 [extend]
 useDefault = true
 
-# Custom rules for common false positives in security testing tools
-[[rules]]
-id = "test-api-key-pattern"
-description = "Fake API keys used in test payloads"
-regex = '''(?i)(sk-test|pk-test|fake-key|dummy-key|test-api-key)'''
-allowlist = { regexTarget = "match" }
-
-[[rules]]
-id = "example-urls"
-description = "Example URLs in documentation"
-regex = '''https?://(example\.com|localhost|127\.0\.0\.1|your-app\.com)'''
-allowlist = { regexTarget = "match" }
+[[allowlists]]
+description = "Allowlist for false positives in security testing tools"
+paths = [
+    '''\.env\.example$''',
+]
+regexTarget = "match"
+regexes = [
+    # Fake/test API keys used in test payloads
+    '''(?i)(sk-test|pk-test|fake-key|dummy-key|test-api-key)''',
+    # Example URLs in documentation
+    '''https?://(example\.com|localhost|127\.0\.0\.1|your-app\.com)''',
+]
